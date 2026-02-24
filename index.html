@@ -449,7 +449,11 @@ let audioChunks = [];
 let isRecording = false;
 let timerInterval = null;
 let startTime = null;
-let notes = [];
+let notes = JSON.parse(localStorage.getItem('capture_notes') || '[]');
+
+function saveNotes() {
+  localStorage.setItem('capture_notes', JSON.stringify(notes));
+}
 
 function saveKey() {
   const input = document.getElementById('api-key-input').value.trim();
@@ -467,6 +471,7 @@ function saveKey() {
 if (apiKey) {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'flex';
+  if (notes.length > 0) { renderNotes(); updateCount(); }
 }
 
 document.getElementById('api-key-input').addEventListener('keydown', e => {
@@ -583,6 +588,7 @@ function addNote(text, duration) {
   const id = Date.now();
 
   notes.unshift({ id, text, time, duration, tag, sync: 'syncing' });
+  saveNotes();
   renderNotes();
   updateCount();
   showToast('Captured');
@@ -610,6 +616,7 @@ async function syncToDoc(note) {
 function updateSyncStatus(id, status) {
   const note = notes.find(n => n.id === id);
   if (note) note.sync = status;
+  saveNotes();
   const dot = document.querySelector(`#note-${id} .sync-dot`);
   if (dot) {
     dot.className = `sync-dot ${status}`;
@@ -653,6 +660,7 @@ function updateCount() {
 
 function deleteNote(id) {
   notes = notes.filter(n => n.id !== id);
+  saveNotes();
   renderNotes();
   updateCount();
 }
