@@ -428,7 +428,7 @@
 <div id="toast"></div>
 
 <script>
-let apiKey = '';
+let apiKey = localStorage.getItem('capture_api_key') || '';
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
@@ -443,6 +443,13 @@ function saveKey() {
     return;
   }
   apiKey = input;
+  localStorage.setItem('capture_api_key', apiKey);
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+}
+
+// Skip setup if key already saved
+if (apiKey) {
   document.getElementById('setup-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'flex';
 }
