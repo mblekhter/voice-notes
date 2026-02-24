@@ -385,7 +385,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--border);
+    background: var(--muted);
     flex-shrink: 0;
     transition: background 0.3s;
   }
@@ -563,6 +563,7 @@ async function processAudio() {
 
   document.getElementById('record-status').textContent = 'tap to capture';
   document.getElementById('record-status').className = 'record-status';
+  document.getElementById('timer').textContent = '';
 }
 
 function detectTag(text) {
