@@ -380,6 +380,18 @@
     line-height: 1.5;
   }
 
+  /* SYNC DOT */
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .sync-dot.synced { background: var(--accent); }
+  .sync-dot.error  { background: var(--red); }
+
   /* SCROLLBAR */
   .notes-list::-webkit-scrollbar { width: 3px; }
   .notes-list::-webkit-scrollbar-track { background: transparent; }
@@ -428,6 +440,9 @@
 <div id="toast"></div>
 
 <script>
+const BACKEND_URL = 'https://voice-notes-backend-mocha.vercel.app';
+const APPEND_SECRET = '9eeb093f1936dc96123770161b0b9d13';
+
 let apiKey = localStorage.getItem('capture_api_key') || '';
 let mediaRecorder = null;
 let audioChunks = [];
@@ -566,10 +581,39 @@ function addNote(text, duration) {
   const tag = detectTag(text);
   const id = Date.now();
 
-  notes.unshift({ id, text, time, duration, tag });
+  notes.unshift({ id, text, time, duration, tag, sync: 'syncing' });
   renderNotes();
   updateCount();
   showToast('Captured');
+  syncToDoc(notes[0]);
+}
+
+async function syncToDoc(note) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/append`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${APPEND_SECRET}`,
+      },
+      body: JSON.stringify({ text: note.text, tag: note.tag, time: note.time }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Sync failed');
+    updateSyncStatus(note.id, 'synced');
+  } catch {
+    updateSyncStatus(note.id, 'error');
+  }
+}
+
+function updateSyncStatus(id, status) {
+  const note = notes.find(n => n.id === id);
+  if (note) note.sync = status;
+  const dot = document.querySelector(`#note-${id} .sync-dot`);
+  if (dot) {
+    dot.className = `sync-dot ${status}`;
+    dot.title = status === 'synced' ? 'Synced to Google Docs' : 'Sync failed — check backend';
+  }
 }
 
 function renderNotes() {
@@ -588,7 +632,10 @@ function renderNotes() {
       </div>
       <div class="note-text">${escapeHtml(n.text)}</div>
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <span class="note-duration">${n.duration}s</span>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <span class="note-duration">${n.duration}s</span>
+          <span class="sync-dot ${n.sync || 'syncing'}" title="${n.sync === 'synced' ? 'Synced to Google Docs' : n.sync === 'error' ? 'Sync failed' : 'Syncing...'}"></span>
+        </div>
         <div class="note-actions">
           <button class="note-action-btn" onclick="copyNote(${n.id})">copy</button>
           <button class="note-action-btn delete" onclick="deleteNote(${n.id})">delete</button>
