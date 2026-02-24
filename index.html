@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Capture</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --border: #2a2a2a;
+    --text: #f0ede6;
+    --muted: #666;
+    --accent: #c8f060;
+    --accent-dim: #8aaa2a;
+    --red: #ff4444;
+    --tag-idea: #3a3a1a;
+    --tag-idea-text: #c8f060;
+    --tag-todo: #1a2a3a;
+    --tag-todo-text: #60b0f0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* API KEY SCREEN */
+  #setup-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2rem;
+  }
+
+  #setup-screen h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 2.8rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    text-align: center;
+  }
+
+  #setup-screen h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  #setup-screen p {
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  .key-input-wrap {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .key-input-wrap input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .key-input-wrap input:focus {
+    border-color: var(--accent);
+  }
+
+  .key-input-wrap input::placeholder { color: var(--muted); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0e0e0e;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    padding: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: opacity 0.2s;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+
+  /* MAIN APP */
+  #app-screen {
+    flex: 1;
+    display: none;
+    flex-direction: column;
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .app-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .app-header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .app-header h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  #copy-all-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.7rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  #copy-all-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .note-count {
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  /* RECORD AREA */
+  .record-area {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #record-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  #record-btn:hover {
+    border-color: var(--accent);
+  }
+
+  #record-btn.recording {
+    border-color: var(--red);
+    background: rgba(255,68,68,0.1);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,68,68,0.3); }
+    50% { box-shadow: 0 0 0 12px rgba(255,68,68,0); }
+  }
+
+  .record-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: all 0.2s;
+  }
+
+  #record-btn.recording .record-icon {
+    border-radius: 4px;
+    background: var(--red);
+    width: 22px;
+    height: 22px;
+  }
+
+  .record-status {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    height: 1rem;
+    text-align: center;
+  }
+
+  .record-status.active { color: var(--red); }
+  .record-status.processing { color: var(--accent-dim); }
+
+  /* TIMER */
+  #timer {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--red);
+    letter-spacing: 0.1em;
+    height: 1.2rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* NOTES LIST */
+  .notes-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--muted);
+    padding: 3rem 0;
+  }
+
+  .empty-state .big { font-size: 2rem; }
+  .empty-state p { font-size: 0.75rem; text-align: center; line-height: 1.6; max-width: 200px; }
+
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .note-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .note-tag {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  .note-tag.idea { background: var(--tag-idea); color: var(--tag-idea-text); }
+  .note-tag.todo { background: var(--tag-todo); color: var(--tag-todo-text); }
+  .note-tag.note { background: #1e1e1e; color: var(--muted); border: 1px solid var(--border); }
+
+  .note-time {
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  .note-text {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text);
+    font-family: 'Instrument Serif', serif;
+    font-size: 1rem;
+  }
+
+  .note-duration {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  .note-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  .note-action-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0.2rem 0;
+    transition: color 0.2s;
+  }
+
+  .note-action-btn:hover { color: var(--accent); }
+  .note-action-btn.delete:hover { color: var(--red); }
+
+  /* TOAST */
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: #0e0e0e;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.6rem 1.2rem;
+    border-radius: 20px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ERROR */
+  .error-msg {
+    background: rgba(255,68,68,0.1);
+    border: 1px solid rgba(255,68,68,0.3);
+    color: #ff8888;
+    font-size: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  /* SCROLLBAR */
+  .notes-list::-webkit-scrollbar { width: 3px; }
+  .notes-list::-webkit-scrollbar-track { background: transparent; }
+  .notes-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <h1>cap<em>ture</em></h1>
+  <p>Voice notes transcribed instantly.<br>Your thoughts, exactly as you said them.</p>
+  <div class="key-input-wrap">
+    <input type="password" id="api-key-input" placeholder="sk-proj-..." autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="btn-primary" onclick="saveKey()">Start Capturing →</button>
+  </div>
+  <p>Your key is stored only in this browser session.<br>Never shared anywhere.</p>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-screen">
+  <div class="app-header">
+    <h1>cap<em>ture</em></h1>
+    <div class="header-right">
+      <button id="copy-all-btn" onclick="copyAll()">Copy All</button>
+      <span class="note-count" id="note-count"></span>
+    </div>
+  </div>
+
+  <div class="record-area">
+    <div id="timer"></div>
+    <button id="record-btn" onclick="toggleRecording()">
+      <div class="record-icon"></div>
+    </button>
+    <div class="record-status" id="record-status">tap to capture</div>
+  </div>
+
+  <div class="notes-list" id="notes-list">
+    <div class="empty-state">
+      <div class="big">○</div>
+      <p>Tap the button and speak your thought. It'll appear here.</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let apiKey = '';
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let timerInterval = null;
+let startTime = null;
+let notes = [];
+
+function saveKey() {
+  const input = document.getElementById('api-key-input').value.trim();
+  if (!input.startsWith('sk-')) {
+    showToast('Looks like an invalid key');
+    return;
+  }
+  apiKey = input;
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'flex';
+}
+
+document.getElementById('api-key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveKey();
+});
+
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+
+    // Use mp4 on iOS, webm elsewhere
+    const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
+                     MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+
+    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => { stream.getTracks().forEach(t => t.stop()); processAudio(); };
+    mediaRecorder.start();
+
+    isRecording = true;
+    startTime = Date.now();
+    document.getElementById('record-btn').classList.add('recording');
+    document.getElementById('record-status').textContent = 'recording...';
+    document.getElementById('record-status').className = 'record-status active';
+
+    timerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - startTime) / 1000);
+      const m = Math.floor(s / 60).toString().padStart(2, '0');
+      const sec = (s % 60).toString().padStart(2, '0');
+      document.getElementById('timer').textContent = `${m}:${sec}`;
+    }, 100);
+
+  } catch (err) {
+    showToast('Microphone access denied');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    clearInterval(timerInterval);
+    isRecording = false;
+    document.getElementById('record-btn').classList.remove('recording');
+    document.getElementById('record-status').textContent = 'transcribing...';
+    document.getElementById('record-status').className = 'record-status processing';
+    document.getElementById('timer').textContent = '';
+    mediaRecorder.stop();
+  }
+}
+
+async function processAudio() {
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  const mimeType = audioChunks[0]?.type || 'audio/webm';
+  const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+  const blob = new Blob(audioChunks, { type: mimeType });
+  const file = new File([blob], `audio.${ext}`, { type: mimeType });
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('model', 'whisper-1');
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      body: formData
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || 'API error');
+    }
+
+    const data = await res.json();
+    const text = data.text?.trim();
+
+    if (text) {
+      addNote(text, duration);
+    } else {
+      showToast('No speech detected');
+    }
+
+  } catch (err) {
+    showError(err.message);
+  }
+
+  document.getElementById('record-status').textContent = 'tap to capture';
+  document.getElementById('record-status').className = 'record-status';
+}
+
+function detectTag(text) {
+  const lower = text.toLowerCase();
+  const todoWords = ['follow up', 'follow-up', 'email', 'schedule', 'set up', 'setup', 'meeting', 'remind', 'call', 'message', 'send', 'book', 'need to', 'have to', 'should', 'todo', 'to do', 'to-do', 'task'];
+  const ideaWords = ['idea', 'what if', 'maybe', 'consider', 'thinking', 'could', 'might', 'feature', 'opportunity', 'explore', 'try'];
+  
+  if (todoWords.some(w => lower.includes(w))) return 'todo';
+  if (ideaWords.some(w => lower.includes(w))) return 'idea';
+  return 'note';
+}
+
+function addNote(text, duration) {
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const tag = detectTag(text);
+  const id = Date.now();
+
+  notes.unshift({ id, text, time, duration, tag });
+  renderNotes();
+  updateCount();
+  showToast('Captured');
+}
+
+function renderNotes() {
+  const list = document.getElementById('notes-list');
+
+  if (notes.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="big">○</div><p>Tap the button and speak your thought. It'll appear here.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = notes.map(n => `
+    <div class="note-card" id="note-${n.id}">
+      <div class="note-meta">
+        <span class="note-tag ${n.tag}">${n.tag}</span>
+        <span class="note-time">${n.time}</span>
+      </div>
+      <div class="note-text">${escapeHtml(n.text)}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="note-duration">${n.duration}s</span>
+        <div class="note-actions">
+          <button class="note-action-btn" onclick="copyNote(${n.id})">copy</button>
+          <button class="note-action-btn delete" onclick="deleteNote(${n.id})">delete</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateCount() {
+  const el = document.getElementById('note-count');
+  el.textContent = notes.length > 0 ? `${notes.length} note${notes.length !== 1 ? 's' : ''}` : '';
+}
+
+function deleteNote(id) {
+  notes = notes.filter(n => n.id !== id);
+  renderNotes();
+  updateCount();
+}
+
+function copyNote(id) {
+  const note = notes.find(n => n.id === id);
+  if (note) {
+    navigator.clipboard.writeText(`[${note.tag.toUpperCase()}] ${note.time}\n${note.text}`);
+    showToast('Copied');
+  }
+}
+
+function copyAll() {
+  if (notes.length === 0) { showToast('No notes yet'); return; }
+  const text = notes.map(n => `[${n.tag.toUpperCase()}] ${n.time}\n${n.text}`).join('\n\n');
+  navigator.clipboard.writeText(text);
+  showToast(`Copied ${notes.length} notes`);
+}
+
+function showError(msg) {
+  const list = document.getElementById('notes-list');
+  const div = document.createElement('div');
+  div.className = 'error-msg';
+  div.textContent = `Error: ${msg}`;
+  list.prepend(div);
+  setTimeout(() => div.remove(), 6000);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
