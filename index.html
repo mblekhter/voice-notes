@@ -542,26 +542,26 @@ async function processAudio() {
   const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
   const blob = new Blob(audioChunks, { type: mimeType });
 
-  // Append blob directly — avoids iOS WebKit bug with new File() in FormData
   const formData = new FormData();
   formData.append('file', blob, `audio.${ext}`);
   formData.append('model', 'whisper-1');
 
   try {
-    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}` },
-      body: formData
+    // Use XHR instead of fetch — fetch+FormData+Blob is buggy on iOS Safari
+    const data = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://api.openai.com/v1/audio/transcriptions');
+      xhr.setRequestHeader('Authorization', `Bearer ${apiKey}`);
+      xhr.onload = () => {
+        const json = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) resolve(json);
+        else reject(new Error(json.error?.message || 'API error'));
+      };
+      xhr.onerror = () => reject(new Error('Network request failed'));
+      xhr.send(formData);
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error?.message || 'API error');
-    }
-
-    const data = await res.json();
     const text = data.text?.trim();
-
     if (text) {
       addNote(text, duration);
     } else {
