@@ -538,13 +538,13 @@ function stopRecording() {
 
 async function processAudio() {
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-  const mimeType = audioChunks[0]?.type || 'audio/webm';
-  const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+  const mimeType = audioChunks[0]?.type || 'audio/mp4';
+  const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
   const blob = new Blob(audioChunks, { type: mimeType });
-  const file = new File([blob], `audio.${ext}`, { type: mimeType });
 
+  // Append blob directly — avoids iOS WebKit bug with new File() in FormData
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append('file', blob, `audio.${ext}`);
   formData.append('model', 'whisper-1');
 
   try {
