@@ -705,6 +705,12 @@ function showToast(msg) {
 function escapeHtml(text) {
   return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/voice-notes/sw.js');
+  });
+}
 </script>
 </body>
 </html>
