@@ -538,8 +538,13 @@ function stopRecording() {
 
 async function processAudio() {
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-  const mimeType = audioChunks[0]?.type || 'audio/mp4';
-  const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
+  const rawMime = audioChunks[0]?.type || '';
+  // Normalize MIME type — strip codec params (e.g. audio/webm;codecs=opus → audio/webm)
+  // so OpenAI Whisper receives a clean, recognized type
+  let mimeType, ext;
+  if (rawMime.includes('webm'))     { mimeType = 'audio/webm'; ext = 'webm'; }
+  else if (rawMime.includes('ogg')) { mimeType = 'audio/ogg';  ext = 'ogg';  }
+  else                              { mimeType = 'audio/mp4';  ext = 'mp4';  }
   const blob = new Blob(audioChunks, { type: mimeType });
 
   const formData = new FormData();
