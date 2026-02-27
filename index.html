@@ -609,7 +609,7 @@ async function syncToDoc(note) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${APPEND_SECRET}`,
       },
-      body: JSON.stringify({ text: note.text, tag: note.tag, time: note.time }),
+      body: JSON.stringify({ text: note.text, tag: note.tag, time: note.time, date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Sync failed');
